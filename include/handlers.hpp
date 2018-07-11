@@ -61,15 +61,15 @@ public:
   inline ~GeoLocationDeleteHandler() {};
 };
 
-class GeoLocationDistanceHandler : public GeoLocationHandler
+class GeoLocationDistanceRadiusHandler : public GeoLocationHandler
 {
 public:
   void finishResponse(HTTPServerRequest& request,
                       HTTPServerResponse& response);
 
-  GeoLocationDistanceHandler(RedisConnectionPool& rc);
+  GeoLocationDistanceRadiusHandler(RedisConnectionPool& rc);
 
-  inline ~GeoLocationDistanceHandler() {};
+  inline ~GeoLocationDistanceRadiusHandler() {};
 };
 
 }

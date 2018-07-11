@@ -74,12 +74,12 @@ protected:
 
     auto locationCreateHandler = contextRequestHandler<GeoLocationCreateHandler, RedisConnectionPool&>(redisConnectionPool);
     auto locationDeleteHandler = contextRequestHandler<GeoLocationDeleteHandler, RedisConnectionPool&>(redisConnectionPool);
-    auto locationDistanceHandler = contextRequestHandler<GeoLocationDistanceHandler, RedisConnectionPool&>(redisConnectionPool);
+    auto locationDistanceRadiusHandler = contextRequestHandler<GeoLocationDistanceRadiusHandler, RedisConnectionPool&>(redisConnectionPool);
 
     //router->AddRoute("/location/", list, "GET");
     router->AddRoute("/location/", locationCreateHandler, "PUT");
     router->AddRoute("/location/", locationDeleteHandler, "DELETE");
-    router->AddRoute("/location/distance", locationDistanceHandler, "POST");
+    router->AddRoute("/location/distance-radius", locationDistanceRadiusHandler, "POST");
 
     // TODO params
     HTTPServerParams* serverParams = new HTTPServerParams;

@@ -13,7 +13,7 @@ auto errorResponse(std::string text, std::string errorCode, HTTPResponse::HTTPSt
   response.setStatusAndReason(statusCode);
   auto& output = response.send();
 
-  auto errorData = new JSON::Object;
+  JSON::Object::Ptr errorData = new JSON::Object;
   errorData->set("message", text);
   errorData->set("error_code", errorCode);
   errorData->stringify(output);
@@ -27,20 +27,27 @@ void GeoLocationHandler::operator()(HTTPServerRequest& request,
     finishResponse(request, response);
   }
   catch (Poco::InvalidAccessException e) {
+    std::cout << e.displayText() << "\n";
     errorResponse(e.displayText(), "MISSING_FIELDS", HTTPResponse::HTTPStatus::HTTP_BAD_REQUEST, response);
   }
   catch (Poco::NotImplementedException e) {
+    std::cout << e.displayText() << "\n";
     errorResponse(e.displayText(), "INVALID_FIELDS", HTTPResponse::HTTPStatus::HTTP_BAD_REQUEST, response);
   }
   catch (Poco::RangeException e) {
+    std::cout << e.displayText() << "\n";
     errorResponse(e.displayText(), "INVALID_FIELDS", HTTPResponse::HTTPStatus::HTTP_BAD_REQUEST, response);
   }
   catch (Poco::JSON::JSONException e) {
+    std::cout << e.displayText() << "\n";
     errorResponse(e.displayText(), "INVALID_JSON", HTTPResponse::HTTPStatus::HTTP_BAD_REQUEST, response);
   }
   catch (Poco::Redis::RedisException e) {
     std::cout << e.displayText() << "\n";
     errorResponse(e.displayText(), "REDIS", HTTPResponse::HTTPStatus::HTTP_INTERNAL_SERVER_ERROR, response);
+  }
+  catch (const std::exception &e) {
+    std::cout << e.what();
   }
 }
 
@@ -125,30 +132,53 @@ void GeoLocationDeleteHandler::finishResponse(HTTPServerRequest& request,
 }
 
 
-GeoLocationDistanceHandler::GeoLocationDistanceHandler(RedisConnectionPool& rc)
+GeoLocationDistanceRadiusHandler::GeoLocationDistanceRadiusHandler(RedisConnectionPool& rc)
   : GeoLocationHandler(rc)
 {}
 
-void GeoLocationDistanceHandler::finishResponse(HTTPServerRequest& request,
-                                              HTTPServerResponse& response) {
+void GeoLocationDistanceRadiusHandler::finishResponse(HTTPServerRequest& request,
+                                                      HTTPServerResponse& response) {
   /**
      INPUT:
      {
      "place_id": 1,
-     "other_place_id": 2,
      "unit": "km"
      }
      OUTPUT:
      {
-     "distance": 10.12,
-     "unit": "km"
+     results: [2]
      }
   */
   JSON::Object::Ptr data = parser.parse(request.stream()).extract<JSON::Object::Ptr>();
 
-  auto [longitude, latitude] = getLocation(data);
+  double distance;
+  data->get("distance").convert(distance);
+  std::string unit;
+  data->get("unit").convert(unit);
+  int placeId;
+  data->get("place_id").convert(placeId);
 
-  // Input validation
+  Redis::Array radiusCommand;
+  radiusCommand << "GEORADIUSBYMEMBER" << GeoLocationHandler::redisKey << std::to_string(placeId) << std::to_string(distance) << unit;
+  auto results = redisClient->execute<Redis::Array>(radiusCommand);
 
+  response.setStatusAndReason(HTTPResponse::HTTPStatus::HTTP_OK);
+
+  JSON::Array::Ptr serialized = new JSON::Array;
+  JSON::Object::Ptr resp = new JSON::Object;
+
+  // std::cout << results.get<Redis::BulkString>(0) << "\n";
+
+  for (size_t i=0; i<results.size()-1; i++) {
+    auto value = results.get<Redis::BulkString>(0);
+    if (!value.isNull()) {
+      serialized->add(std::stoi(value.value()));
+    }
+  }
+
+  resp->set("results", serialized);
+
+  auto& output = response.send();
+  resp->stringify(output);
 }
 }

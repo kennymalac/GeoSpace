@@ -3,7 +3,10 @@
    CLOSED: [2018-07-11 Wed 12:23]
 ** DONE location delete endpoint
    CLOSED: [2018-07-11 Wed 14:22]
-** TODO location distance calculation endpoint 
+** DONE location distance calculation endpoint 
+   CLOSED: [2018-07-11 Wed 16:32]
+** DONE fix handler memory leaks
+   CLOSED: [2018-07-11 Wed 16:32]
 ** TODO use SecureServerSocket
 ** TODO fix HTTPRouter include issue
 ** TODO make JSONParser ObjectPool (?)
