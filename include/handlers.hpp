@@ -1,25 +1,30 @@
 #include <memory>
+#include <optional>
 
+#include "Poco/ObjectPool.h"
 #include "Poco/Net/HTTPServerResponse.h"
 #include "Poco/Net/HTTPServerRequest.h"
 #include "Poco/Redis/Client.h"
+#include "Poco/Redis/PoolableConnectionFactory.h"
 #include "Poco/JSON/Parser.h"
 
 namespace GeoSpaceServer {
 using Poco::Net::HTTPServerRequest;
 using Poco::Net::HTTPResponse;
 using Poco::Net::HTTPServerResponse;
+namespace Redis = Poco::Redis;
 
-using RedisClient = Poco::Redis::Client;
 using JSONParser = Poco::JSON::Parser;
+using RedisConnectionPool = Poco::ObjectPool<Redis::Client, Redis::Client::Ptr>;
+
 
 auto errorResponse(std::string text, std::string errorCode, HTTPResponse::HTTPStatus statusCode, HTTPServerResponse& response, std::ostream& output);
 
 class GeoLocationHandler
 {
 protected:
-  std::shared_ptr<JSONParser> parser;
-  std::shared_ptr<RedisClient> redisClient;
+  JSONParser parser;
+  Redis::Client::Ptr redisClient;
 
 public:
   virtual void finishResponse(HTTPServerRequest& request,
@@ -27,9 +32,10 @@ public:
 
   virtual void operator()(HTTPServerRequest& request, HTTPServerResponse& response);
 
-  inline GeoLocationHandler(std::shared_ptr<JSONParser> p, std::shared_ptr<RedisClient> rc)
-    : parser(p), redisClient(rc)
-  {}
+  inline GeoLocationHandler(RedisConnectionPool& rc)
+  {
+    redisClient = Redis::PooledConnection(rc);
+  }
   inline ~GeoLocationHandler() {};
 };
 
@@ -39,7 +45,7 @@ public:
   void finishResponse(HTTPServerRequest& request,
                       HTTPServerResponse& response);
 
-  GeoLocationCreateHandler(std::shared_ptr<JSONParser> p, std::shared_ptr<RedisClient> rc);
+  GeoLocationCreateHandler(RedisConnectionPool& rc);
 
   inline ~GeoLocationCreateHandler() {};
 };
@@ -50,7 +56,7 @@ public:
   void finishResponse(HTTPServerRequest& request,
                       HTTPServerResponse& response);
 
-  GeoLocationDeleteHandler(std::shared_ptr<JSONParser> p, std::shared_ptr<RedisClient> rc);
+  GeoLocationDeleteHandler(RedisConnectionPool& rc);
 
   inline ~GeoLocationDeleteHandler() {};
 };
@@ -61,7 +67,7 @@ public:
   void finishResponse(HTTPServerRequest& request,
                       HTTPServerResponse& response);
 
-  GeoLocationDistanceHandler(std::shared_ptr<JSONParser> p, std::shared_ptr<RedisClient> rc);
+  GeoLocationDistanceHandler(RedisConnectionPool& rc);
 
   inline ~GeoLocationDistanceHandler() {};
 };
