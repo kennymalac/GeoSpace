@@ -1,7 +1,8 @@
 * tasks
 ** DONE location create endpoint
    CLOSED: [2018-07-11 Wed 12:23]
-** TODO location delete endpoint 
+** DONE location delete endpoint
+   CLOSED: [2018-07-11 Wed 14:22]
 ** TODO location distance calculation endpoint 
 ** TODO use SecureServerSocket
 ** TODO fix HTTPRouter include issue

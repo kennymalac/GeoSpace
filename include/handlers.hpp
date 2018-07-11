@@ -1,5 +1,4 @@
 #include <memory>
-#include <optional>
 
 #include "Poco/ObjectPool.h"
 #include "Poco/Net/HTTPServerResponse.h"
@@ -27,6 +26,7 @@ protected:
   Redis::Client::Ptr redisClient;
 
 public:
+  static std::string redisKey;
   virtual void finishResponse(HTTPServerRequest& request,
                               HTTPServerResponse& response) = 0;
 

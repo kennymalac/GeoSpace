@@ -7,6 +7,8 @@ namespace GeoSpaceServer {
 namespace JSON = Poco::JSON;
 namespace Redis = Poco::Redis;
 
+std::string GeoLocationHandler::redisKey = "West-Hyperborea";
+
 auto errorResponse(std::string text, std::string errorCode, HTTPResponse::HTTPStatus statusCode, HTTPServerResponse& response) {
   response.setStatusAndReason(statusCode);
   auto& output = response.send();
@@ -65,7 +67,6 @@ void GeoLocationCreateHandler::finishResponse(HTTPServerRequest& request,
                                               HTTPServerResponse& response) {
   /**
      {
-     "user_id": 1,
      "place_id": 1,
      "latitude": 10.0,
      "longitude": 10.0
@@ -76,16 +77,14 @@ void GeoLocationCreateHandler::finishResponse(HTTPServerRequest& request,
   JSON::Object::Ptr data = parser.parse(request.stream()).extract<JSON::Object::Ptr>();
 
   auto [longitude, latitude] = getLocation(data);
-  int userId;
-  data->get("user_id").convert(userId);
   int placeId;
   data->get("place_id").convert(placeId);
 
   Redis::Array command;
-  command << "GEOADD" << "USER-" + std::to_string(userId) <<
+  command << "GEOADD" << GeoLocationHandler::redisKey <<
     std::to_string(longitude) <<
     std::to_string(latitude) <<
-    "PLACE-" + std::to_string(placeId) + "";
+    std::to_string(placeId);
 
   std::cout << command.toString() << "\n";
 
@@ -93,10 +92,10 @@ void GeoLocationCreateHandler::finishResponse(HTTPServerRequest& request,
   std::cout << std::to_string(placesAddedAmount) << "\n";
 
   Redis::Array getCommand;
-  getCommand << "GEOPOS" << "USER-" + std::to_string(userId) << "PLACE-" + std::to_string(placeId);
+  getCommand << "GEOPOS" << GeoLocationHandler::redisKey << std::to_string(placeId);
   std::cout << "result: " << redisClient->execute<Redis::Array>(getCommand).toString() << "\n";
 
-  response.setStatus(HTTPResponse::HTTPStatus::HTTP_CREATED);
+  response.setStatusAndReason(HTTPResponse::HTTPStatus::HTTP_CREATED);
   response.send();
 }
 
@@ -113,11 +112,16 @@ void GeoLocationDeleteHandler::finishResponse(HTTPServerRequest& request,
   */
   JSON::Object::Ptr data = parser.parse(request.stream()).extract<JSON::Object::Ptr>();
 
-  auto placeId = data->get("place_id");
-
+  int placeId;
+  data->get("place_id").convert(placeId);
 
   // delete this place
-  // TODO
+  Redis::Array deleteCommand;
+  deleteCommand << "ZREM" << GeoLocationHandler::redisKey << std::to_string(placeId);
+  redisClient->execute<signed long>(deleteCommand);
+
+  response.setStatusAndReason(HTTPResponse::HTTPStatus::HTTP_OK);
+  response.send();
 }
 
 
