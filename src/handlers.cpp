@@ -48,6 +48,7 @@ void GeoLocationHandler::operator()(HTTPServerRequest& request,
   }
   catch (const std::exception &e) {
     std::cout << e.what();
+    errorResponse(e.what(), "UNKNOWN_ERROR", HTTPResponse::HTTPStatus::HTTP_INTERNAL_SERVER_ERROR, response);
   }
 }
 
@@ -142,6 +143,7 @@ void GeoLocationDistanceRadiusHandler::finishResponse(HTTPServerRequest& request
      INPUT:
      {
      "place_id": 1,
+     "distance": 10.0,
      "unit": "km"
      }
      OUTPUT:
@@ -170,7 +172,7 @@ void GeoLocationDistanceRadiusHandler::finishResponse(HTTPServerRequest& request
   // std::cout << results.get<Redis::BulkString>(0) << "\n";
 
   for (size_t i=0; i<results.size()-1; i++) {
-    auto value = results.get<Redis::BulkString>(0);
+    auto value = results.get<Redis::BulkString>(i);
     if (!value.isNull()) {
       serialized->add(std::stoi(value.value()));
     }
